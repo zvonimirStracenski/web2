@@ -18,26 +18,18 @@ async function getComments() {
 
 router.get("/", async (req, res, next) => {
     try {
-        const result = await pool.query(`
-                SELECT text FROM comments
-            `);
-        res.render("index", {comments: result.rows, isSafe: false, bypassAdmin: Boolean(req.session?.bypassAdmin)});
+        const comms = await getComments();
+        res.render("index", {comments: comms, escapeOff: Boolean(req.session?.escapeOff), bypassAdmin: Boolean(req.session?.bypassAdmin)});
     } catch (error) {
-        console.error(error);
         next(error);
     }
 });
 
 // xss checkbox
-router.post("/", async (req, res, next) => {
-    try{
-        const isSafe = req.body.isSafe === "true";
-        req.session.cookie.httpOnly = !isSafe;
-        const comms = await getComments();
-        res.render("index", {isSafe: isSafe, comments: comms, bypassAdmin: Boolean(req.session?.bypassAdmin)});
-    } catch(error){
-        next(error);
-    }
+router.post("/", (req, res) => {
+    req.session.escapeOff = Boolean(req.body.escapeOff);
+    req.session.cookie.httpOnly = !req.session.escapeOff;
+    res.sendStatus(200);
 });
 
 async function addComment(comment){

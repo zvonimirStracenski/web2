@@ -1,5 +1,5 @@
-import pg from 'pg';
-import dotenv from 'dotenv';
+import pg from "pg";
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -12,9 +12,10 @@ const pool = new Pool({
         : false
 });
 
-pool.on('connect', () => {
-    console.log('Connected to PostgreSQL!');
-});
+pool.query('SELECT NOW()')
+  .then(() => console.log('Connected to PostgreSQL!'))
+  .catch((err) => console.error('Initial DB connection failed:', err.message));
+
 
 pool.on('error', (err) => {
     console.error('Unexpected database error:', err);

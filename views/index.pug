@@ -23,17 +23,15 @@ html(lang='en')
         br
         | Pritiskom gumba Ukloni sigurni prikaz (unescape) isključuje se kodiranje komentara, a ponovnim pritiskom na gumb ili ponovnim učitavanjem stranice korisnikovi cookie-ji prikazuju se kao javni komentar.
       h2 Aplikacija s komentarima
-      form(action="/" method="POST")
-        label
-          input(type="checkbox" name="isSafe" value="true" checked=isSafe onchange="this.form.submit()")
-          | Ukloni sigurni prikaz (unescape)
-        h3 Komentari
-        ul#komentari
-          each comment in comments
-            if !isSafe
-              li= comment.text
-            else
-              li!= comment.text
+      input#escapeOff(type="checkbox" checked=escapeOff autocomplete="off")
+      | Ukloni sigurni prikaz (unescape)
+      h3 Komentari
+      ul#komentari
+        each comment in comments
+          if !escapeOff
+            li= comment.text
+          else
+            li!= comment.text
 
       h3 Dodaj komentar
 
@@ -99,5 +97,13 @@ script.
     });
   });
 
+  const escape_checkbox = document.getElementById('escapeOff');
 
-
+  escape_checkbox.addEventListener('change', async () => {
+    await fetch("/", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ escapeOff: escape_checkbox.checked })
+    });
+    window.location.reload();
+  });
