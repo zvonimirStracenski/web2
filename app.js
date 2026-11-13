@@ -2,11 +2,14 @@ import express from "express";
 import "dotenv/config"
 import session from 'express-session';
 import path from 'node:path';
+import connectPgSimple from "connect-pg-simple";
+import pool from "./config/database.js";
 
 import indexRouter from './routes/index.js';
 import { randomUUID } from "node:crypto";
 
 const app = express();
+const pgSession = connectPgSimple(session);
 
 app.set('views', path.join(import.meta.dirname, 'views'));
 app.set('view engine', 'pug');
@@ -18,20 +21,27 @@ app.set('trust proxy', 1);
 
 app.use(
   session({
+    store: new pgSession({
+      pool: pool,
+      tableName: "user_sessions",
+      createTableIfMissing: true,
+    }),
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
     cookie: {
       httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000
-    }
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    },
   })
 );
 
 app.use((req, res, next) => {
-  req.session.secret_cookie = randomUUID();
+  if (!req.session.secret_cookie) {
+    req.session.secret_cookie = randomUUID();
+  }
   next();
 });
 
