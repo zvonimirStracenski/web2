@@ -26,12 +26,12 @@ html(lang='en')
       input#escapeOff(type="checkbox" checked=escapeOff autocomplete="off")
       | Ukloni sigurni prikaz (unescape)
       h3 Komentari
-        ul#komentari
-          each comment in comments
-            if !escapeOff
-              li= comment.text
-            else
-              li!= comment.text
+      ul#komentari
+        each comment in comments
+          if !escapeOff
+            li= comment.text
+          else
+            li!= comment.text
 
       h3 Dodaj komentar
 
