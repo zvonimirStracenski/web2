@@ -1,0 +1,103 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1')
+    title= "XSS and broken access control"
+  body
+    header
+    main
+      h1 XSS
+      - const attacker_comment = '<script>fetch("/comments", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ comment: document.cookie }) });</script>';
+      h3 Objašnjenje
+      p
+        | Korišten je pohranjeni XSS napad omogućen time što aplikacija ne kodira korisničke komentare.
+        br
+        | Napadač unosi komentar:
+        br
+        br
+        | "#{attacker_comment}"
+        br
+        br
+        | Time prisiljava sve korisnike na stranici da pri učitavanju tog komentara izvedu javascript kod koji unosi javno vidljivi komentar koji sadrži njihove kolačiće, pa moguće i session id.
+        br
+        | Pritiskom gumba Ukloni sigurni prikaz (unescape) isključuje se kodiranje komentara, a ponovnim pritiskom na gumb ili ponovnim učitavanjem stranice korisnikovi cookie-ji prikazuju se kao javni komentar.
+      h2 Aplikacija s komentarima
+      form(action="/" method="POST")
+        label
+          input(type="checkbox" name="isSafe" value="true" checked=isSafe onchange="this.form.submit()")
+          | Ukloni sigurni prikaz (unescape)
+        h3 Komentari
+        ul#komentari
+          each comment in comments
+            if !isSafe
+              li= comment.text
+            else
+              li!= comment.text
+
+      h3 Dodaj komentar
+
+      form(action="/comments" method="POST")
+        textarea(name="comment" required)
+        button(type="submit") Dodaj komentar
+        
+      form(action="/attacker_comment" method="POST")
+        button(type="submit") Dodaj napadačev komentar
+      br
+      form(action="/delete_comments" method="POST")
+        button(type="submit") Izbriši komentare
+
+      h1 Loša kontrola pristupa
+
+      h3 Objašnjenje
+      p
+        | U aplikaciji postoje dvije vrste korisnika user i admin.
+        br
+        | Svi imaju pristup javnoj podstranici /user, no samo admin ima pistup stranici /admin.
+        br
+        br
+        | Korisnik (user) se može ulogirati koristeći ime "user" i lozinku "user_pass".
+        br
+        | Administrator (admin) se može ulogirati koristeći ime "admin" i lozinku "admin_pass".
+        br
+        br
+        | Nakon ulogiranja napadač koji ima ulogu user vidi da se u url-u pojavljuje riječ user koju mijenja u admin kako bi dobio dodatne zabranjene ovlasti na stranici.
+        br
+        | Pri posjetu podstranici /admin i ostalim podstranicama koje trebaju biti dostupne samo određenim korisnicima potrebna je provjera ovlasti.
+        br
+        | Pritiskom na tipku "Uključi pogrešnu provjeru ovlasti" isključuje se provjera ovlasti pri posjetu stranice. Tada napadač koji riječ /user u URL-u promjeni u /admin ima pristup zaštićenoj podstranici.
+      h2 Login
+      form(action="/login", method="POST")
+        div
+          label(for="username") Korisničko ime: 
+          input#username(type="text" name="username" required)
+          br
+          label(for="password") Lozinka:
+          input#password(type="password" name="password" required)
+        button(type="submit") Prijavi se
+
+      label
+  input#bypassCheckbox(type="checkbox" checked=bypassAdmin autocomplete="off")
+  |  Uključi pogrešnu provjeru ovlasti
+
+script.
+  const checkbox = document.getElementById('bypassCheckbox');
+
+  checkbox.addEventListener('change', async () => {
+    await fetch("/wrong", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bypass: checkbox.checked })
+    });
+  });
+
+  window.addEventListener('pageshow', async () => {
+    await fetch("/wrong", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bypass: checkbox.checked })
+    });
+  });
+
+
+
